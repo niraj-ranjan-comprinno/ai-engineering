@@ -14,8 +14,8 @@ A 10-week hands-on journey to master AI engineering concepts, built progressivel
 |------|-------|--------|-------------|
 | 1 | [AI Gateway](./week1-ai-gateway/) | ✅ Complete | Streaming LLM backend with AWS Bedrock |
 | 2 | [RAG Foundations](./week2-rag-foundations/) | ✅ Complete | Document ingestion, embeddings, vector search |
-| 3 | AI Agents | 🔜 Coming | Tool use and function calling |
-| 4 | Evaluation & Testing | 📋 Planned | LLM evaluation frameworks |
+| 3 | [AI Agents](./week3-ai-agents/) | ✅ Complete | Tool use, function calling, ReAct pattern |
+| 4 | Evaluation & Testing | 🔜 Next | LLM evaluation frameworks |
 | 5 | Fine-tuning | 📋 Planned | Model customization techniques |
 | 6 | Prompt Engineering | 📋 Planned | Advanced prompting strategies |
 | 7 | Multi-modal AI | 📋 Planned | Vision and audio processing |
@@ -32,22 +32,30 @@ A 10-week hands-on journey to master AI engineering concepts, built progressivel
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────┐
+│              Week 3: AI Agents (Port 8002)              │
+│  • ReAct Pattern         • Tool Registry                │
+│  • Function Calling      • Conversation Memory          │
+│  Tools: Calculator, Weather, DateTime, WebSearch        │
+└─────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────┐
 │              Week 2: RAG Engine (Port 8001)             │
-│  • Document Chunking    • Vector Search                 │
-│  • Embeddings           • Knowledge Retrieval           │
+│  • Document Chunking     • Vector Search                │
+│  • Embeddings            • Knowledge Retrieval          │
 └─────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────┐
 │              Week 1: AI Gateway (Port 8000)             │
 │  • Provider Abstraction  • Cost Tracking                │
-│  • Streaming Support     • Request Logging              │
+│  • Streaming Support     • Function Calling             │
 └─────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────┐
 │                     AWS Bedrock                         │
-│  • Claude Sonnet        • Titan Embeddings              │
+│  • Claude Sonnet         • Titan Embeddings             │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -55,23 +63,44 @@ A 10-week hands-on journey to master AI engineering concepts, built progressivel
 
 ### Prerequisites
 - Python 3.11+
-- AWS CLI configured with Bedrock access
-- `uv` package manager (recommended)
+- AWS CLI configured with Bedrock access (`aws sso login --profile ai-learning`)
 
 ### Running the Projects
 
-**Week 1 - AI Gateway:**
+**Week 1 - AI Gateway (required for all other weeks):**
 ```bash
 cd week1-ai-gateway
 source .venv/bin/activate
 AWS_PROFILE=ai-learning uvicorn ai_gateway.main:app --reload --port 8000
 ```
 
-**Week 2 - RAG Engine (requires Week 1 running):**
+**Week 2 - RAG Engine:**
 ```bash
 cd week2-rag-foundations
 source .venv/bin/activate
 AWS_PROFILE=ai-learning PYTHONPATH=src uvicorn rag_engine.main:app --reload --port 8001
+```
+
+**Week 3 - AI Agents:**
+```bash
+cd week3-ai-agents
+source .venv/bin/activate
+PYTHONPATH=src uvicorn ai_agents.main:app --reload --port 8002
+```
+
+### Quick Test
+
+```bash
+# Test Week 1 Gateway
+curl http://localhost:8000/v1/health
+
+# Test Week 2 RAG
+curl http://localhost:8001/health
+
+# Test Week 3 Agent
+curl -X POST http://localhost:8002/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "What is 25% of 180?"}'
 ```
 
 ## 📖 Learning Resources
@@ -80,6 +109,13 @@ Each week includes:
 - `README.md` - Project overview and setup
 - `docs/project-learning.md` - Detailed concept explanations
 - Working code with extensive comments
+
+## 🔗 Dependencies
+
+```
+Week 3 (Agents) ──► Week 1 (Gateway) ──► AWS Bedrock
+Week 2 (RAG) ────► Week 1 (Gateway) ──► AWS Bedrock
+```
 
 ## 👤 Author
 
