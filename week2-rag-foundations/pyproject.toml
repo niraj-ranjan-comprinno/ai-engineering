@@ -1,0 +1,61 @@
+[project]
+name = "rag-engine"
+version = "0.1.0"
+description = "Week 2: RAG Foundations - Knowledge Retrieval System"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    # Web Framework
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "sse-starlette>=2.0.0",
+    
+    # Data Validation
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+    
+    # Vector Database
+    "chromadb>=0.4.22",
+    
+    # Document Processing
+    "pypdf>=4.0.0",
+    "python-docx>=1.1.0",
+    "markdown>=3.5.0",
+    "beautifulsoup4>=4.12.0",
+    
+    # Text Processing
+    "tiktoken>=0.5.0",
+    
+    # AWS Bedrock (for embeddings)
+    "boto3>=1.34.0",
+    
+    # HTTP Client (for Week 1 Gateway)
+    "httpx>=0.26.0",
+    
+    # Utilities
+    "python-dotenv>=1.0.0",
+    "python-multipart>=0.0.6",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.23.0",
+    "black>=24.1.0",
+    "ruff>=0.1.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rag_engine"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
