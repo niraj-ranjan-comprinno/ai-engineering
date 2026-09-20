@@ -189,6 +189,8 @@ class BedrockProvider(BaseLLMProvider):
         messages: list[dict],
         temperature: float,
         max_tokens: int,
+        tools: list[dict] | None = None,
+        system: str | None = None,
     ) -> dict:
         """
         Build request body for Claude models on Bedrock.
@@ -213,9 +215,19 @@ class BedrockProvider(BaseLLMProvider):
                     "system": "..."
                 })
             )
+        
+        TOOL USE FORMAT:
+        ----------------
+        When tools are provided, Claude can return tool_use blocks:
+        {
+            "type": "tool_use",
+            "id": "toolu_01...",
+            "name": "calculator",
+            "input": {"expression": "2 + 2"}
+        }
         """
-        # Extract system message
-        system_content = ""
+        # Extract system message from messages
+        system_content = system or ""
         filtered_messages = []
         
         for msg in messages:
@@ -236,6 +248,10 @@ class BedrockProvider(BaseLLMProvider):
         
         if system_content.strip():
             body["system"] = system_content.strip()
+        
+        # Add tools if provided
+        if tools:
+            body["tools"] = tools
         
         return body
     
@@ -289,12 +305,22 @@ class BedrockProvider(BaseLLMProvider):
         model: Optional[str] = None,
         temperature: float = 0.7,
         max_tokens: Optional[int] = None,
+        tools: list[dict] | None = None,
+        system: str | None = None,
     ) -> LLMResponse:
         """
         Generate a non-streaming response from Bedrock.
         
         Note: boto3 is synchronous, so we run it in a thread pool
         to avoid blocking the event loop.
+        
+        Args:
+            messages: Conversation messages
+            model: Model to use
+            temperature: Sampling temperature
+            max_tokens: Max tokens to generate
+            tools: Optional list of tool schemas for function calling
+            system: Optional system prompt
         """
         import asyncio
         
@@ -304,7 +330,7 @@ class BedrockProvider(BaseLLMProvider):
         
         # Build request body based on model type
         if self._is_claude_model(model):
-            body = self._build_claude_body(messages, temperature, max_tokens)
+            body = self._build_claude_body(messages, temperature, max_tokens, tools, system)
         elif self._is_llama_model(model):
             body = self._build_llama_body(messages, temperature, max_tokens)
         else:
@@ -326,16 +352,20 @@ class BedrockProvider(BaseLLMProvider):
         response_body = json.loads(response['body'].read())
         
         if self._is_claude_model(model):
-            content = response_body["content"][0]["text"]
+            # Claude returns content as a list of blocks
+            # Can be text blocks or tool_use blocks
+            content = response_body.get("content", [])
             prompt_tokens = response_body["usage"]["input_tokens"]
             completion_tokens = response_body["usage"]["output_tokens"]
-            finish_reason = response_body.get("stop_reason", "stop")
+            stop_reason = response_body.get("stop_reason", "end_turn")
+            finish_reason = stop_reason
         elif self._is_llama_model(model):
             content = response_body["generation"]
             # Llama doesn't return token counts, estimate
             prompt_tokens = len(str(messages)) // 4  # rough estimate
             completion_tokens = len(content) // 4
-            finish_reason = response_body.get("stop_reason", "stop")
+            stop_reason = response_body.get("stop_reason", "stop")
+            finish_reason = stop_reason
         else:
             raise ValueError(f"Cannot parse response for model: {model}")
         
@@ -345,6 +375,7 @@ class BedrockProvider(BaseLLMProvider):
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
             finish_reason=finish_reason,
+            stop_reason=stop_reason,
         )
     
     async def stream_chat(

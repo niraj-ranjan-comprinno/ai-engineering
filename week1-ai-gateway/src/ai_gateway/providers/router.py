@@ -210,6 +210,8 @@ class LLMRouter:
         temperature: float = 0.7,
         max_tokens: Optional[int] = None,
         fallback: bool = True,
+        tools: list[dict] | None = None,
+        system: str | None = None,
     ) -> tuple[LLMResponse, str]:
         """
         Route a chat completion request.
@@ -231,6 +233,8 @@ class LLMRouter:
             temperature: Sampling temperature
             max_tokens: Max tokens to generate
             fallback: Whether to try other providers on failure
+            tools: Optional list of tool schemas for function calling
+            system: Optional system prompt
             
         Returns:
             Tuple of (LLMResponse, provider_name_used)
@@ -256,6 +260,8 @@ class LLMRouter:
                     model=model,
                     temperature=temperature,
                     max_tokens=max_tokens,
+                    tools=tools,
+                    system=system,
                 )
                 return response, provider_name
                 

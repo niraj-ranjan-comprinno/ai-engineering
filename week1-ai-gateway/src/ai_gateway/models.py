@@ -55,6 +55,27 @@ class Message(BaseModel):
     )
 
 
+class ToolSchema(BaseModel):
+    """
+    Schema for a tool/function that the LLM can call.
+    
+    THEORY: Function Calling / Tool Use
+    ------------------------------------
+    Function calling lets the LLM request actions from your code:
+    
+    1. You define tools with name, description, and parameter schema
+    2. LLM sees the tools and can choose to call them
+    3. LLM outputs a structured tool_use block with parameters
+    4. Your code executes the tool and returns results
+    5. LLM uses results to formulate final response
+    
+    This is the foundation of AI Agents!
+    """
+    name: str = Field(description="Unique tool name")
+    description: str = Field(description="What the tool does (LLM reads this)")
+    input_schema: dict = Field(description="JSON Schema for tool parameters")
+
+
 class ChatRequest(BaseModel):
     """
     Request body for chat completions.
@@ -103,6 +124,15 @@ class ChatRequest(BaseModel):
     stream: bool = Field(
         default=True,
         description="Whether to stream the response",
+    )
+    # NEW: Tool/Function calling support
+    tools: Optional[list[ToolSchema]] = Field(
+        default=None,
+        description="Tools available for the LLM to call",
+    )
+    system: Optional[str] = Field(
+        default=None,
+        description="System prompt (alternative to system message)",
     )
 
 
@@ -162,10 +192,26 @@ class CostBreakdown(BaseModel):
     model: str = Field(description="Model used for pricing")
 
 
+class ToolUseBlock(BaseModel):
+    """A tool call requested by the LLM."""
+    type: str = Field(default="tool_use")
+    id: str = Field(description="Unique ID for this tool call")
+    name: str = Field(description="Tool name to call")
+    input: dict = Field(description="Parameters for the tool")
+
+
+class TextBlock(BaseModel):
+    """Text content from the LLM."""
+    type: str = Field(default="text")
+    text: str = Field(description="Text content")
+
+
 class ChatResponse(BaseModel):
     """Complete response for non-streaming requests."""
     id: str = Field(description="Unique request identifier")
-    content: str = Field(description="Generated response content")
+    content: list[TextBlock | ToolUseBlock] | str = Field(
+        description="Response content - text blocks and/or tool_use blocks"
+    )
     model: str = Field(description="Model used for generation")
     provider: str = Field(description="Provider used")
     usage: TokenUsage = Field(description="Token usage statistics")
@@ -175,6 +221,10 @@ class ChatResponse(BaseModel):
     )
     latency_ms: float = Field(description="Request latency in milliseconds")
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    stop_reason: Optional[str] = Field(
+        default=None,
+        description="Why generation stopped (end_turn, tool_use, max_tokens)"
+    )
 
 
 class StreamChunk(BaseModel):

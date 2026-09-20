@@ -61,6 +61,8 @@ from ..models import (
     StreamChunk,
     StreamComplete,
     TokenUsage,
+    TextBlock,
+    ToolUseBlock,
 )
 from ..providers import LLMRouter
 from ..tokenizer import calculate_cost, count_message_tokens
@@ -154,7 +156,6 @@ async def list_providers(
 
 @router.post(
     "/chat/completions",
-    response_model=ChatResponse,
     responses={
         400: {"model": ErrorResponse},
         500: {"model": ErrorResponse},
@@ -194,6 +195,11 @@ async def chat_completions(
         # Convert messages to dict format
         messages = [{"role": m.role, "content": m.content} for m in request.messages]
         
+        # Convert tools to dict format if provided
+        tools = None
+        if request.tools:
+            tools = [{"name": t.name, "description": t.description, "input_schema": t.input_schema} for t in request.tools]
+        
         # Call LLM
         response, provider_used = await llm_router.chat(
             messages=messages,
@@ -201,6 +207,8 @@ async def chat_completions(
             model=request.model,
             temperature=request.temperature,
             max_tokens=request.max_tokens,
+            tools=tools,
+            system=request.system,
         )
         
         # Calculate latency
@@ -233,6 +241,7 @@ async def chat_completions(
             ),
             cost=cost,
             latency_ms=round(latency_ms, 2),
+            stop_reason=response.stop_reason,
         )
         
     except ValueError as e:

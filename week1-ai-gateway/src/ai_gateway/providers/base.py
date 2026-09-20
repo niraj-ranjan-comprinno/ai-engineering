@@ -42,11 +42,12 @@ class LLMResponse:
     - Easy to log and compare across providers
     - Consistent metrics collection
     """
-    content: str
+    content: str | list  # str for simple text, list for tool_use responses
     model: str
     prompt_tokens: int
     completion_tokens: int
     finish_reason: str
+    stop_reason: str | None = None  # "end_turn", "tool_use", "max_tokens"
     
     @property
     def total_tokens(self) -> int:
